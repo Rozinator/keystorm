@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keystorm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div id="toasts"></div>
+
+<header class="topbar">
+  <button class="logo" data-go="menu" title="Main menu">⚡ KEY<span>STORM</span></button>
+  <div class="player">
+    <div class="lvl-badge" id="lvlBadge">1</div>
+    <div class="lvl-info">
+      <div class="rank" id="rankName">Hunt &amp; Peck</div>
+      <div class="xpbar"><div id="xpFill"></div></div>
+      <div class="xptext" id="xpText">0 / 120 XP</div>
+    </div>
+  </div>
+  <div class="chips">
+    <div class="chip" title="Daily streak">🔥 <b id="streak">0</b><small>day streak</small></div>
+    <div class="chip daily" title="Today's practice goal">
+      <svg viewBox="0 0 36 36" class="ring"><circle cx="18" cy="18" r="15" class="ring-bg"/><circle cx="18" cy="18" r="15" class="ring-fg" id="dailyRing"/></svg>
+      <span><b id="dailyText">0/10</b><small>min today</small></span>
+    </div>
+    <button class="icon-btn" id="soundBtn" title="Toggle sound">🔊</button>
+    <button class="icon-btn" data-go="settings" title="Settings">⚙️</button>
+  </div>
+</header>
+
+<main>
+  <!-- MENU -->
+  <section class="screen active" id="menu">
+    <h1 class="hero">Type faster. <span class="grad">Have fun doing it.</span></h1>
+    <p class="sub">Three ways to train. Your progress, streaks and weak keys are saved automatically.</p>
+    <div class="modes">
+      <button class="mode-card training" data-go="training">
+        <div class="mode-icon">🎯</div>
+        <h2>Training Path</h2>
+        <p>Adaptive lessons that unlock keys one by one and hammer your weakest letters. <b>The fastest way to improve.</b></p>
+        <span class="tag" id="trainTag">7 / 26 keys</span>
+      </button>
+      <button class="mode-card arcade" data-go="arcade">
+        <div class="mode-icon">☄️</div>
+        <h2>Word Rain</h2>
+        <p>Words fall from the sky. Type them to blast them before they hit the city. Chain combos, grab power-ups.</p>
+        <span class="tag" id="arcadeTag">Best: 0</span>
+      </button>
+      <button class="mode-card sprint" data-go="sprint">
+        <div class="mode-icon">⏱️</div>
+        <h2>Sprint</h2>
+        <p>A timed speed test on real words. Measure your WPM and beat your personal best.</p>
+        <span class="tag" id="sprintTag">Best: 0 WPM</span>
+      </button>
+    </div>
+    <div class="menu-row">
+      <button class="btn ghost" data-go="progress">📈 Progress &amp; achievements</button>
+    </div>
+    <div class="tips">
+      <h3>How to get faster</h3>
+      <ul>
+        <li><b>Accuracy first.</b> Speed follows accuracy, never the other way round.</li>
+        <li><b>Don't look down.</b> Keep fingers on <kbd>F</kbd> and <kbd>J</kbd> (feel the bumps) and use the on-screen keyboard instead.</li>
+        <li><b>Little and often.</b> 10–15 minutes a day beats an hour once a week. Keep the streak alive!</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- TRAINING -->
+  <section class="screen" id="training">
+    <div class="mode-head">
+      <div>
+        <h2>🎯 Training Path</h2>
+        <div class="keychips" id="keyChips"></div>
+      </div>
+      <div class="focus-box">
+        <small>Focus key</small>
+        <div class="focus-key" id="focusKey">f</div>
+        <div class="focus-stats" id="focusStats">—</div>
+      </div>
+    </div>
+    <div class="live">
+      <div><small>WPM</small><b id="trWpm">0</b></div>
+      <div><small>Accuracy</small><b id="trAcc">100%</b></div>
+      <div class="combo"><small>Combo</small><b id="trCombo">0</b></div>
+      <div><small>Target</small><b id="trTarget">30</b></div>
+    </div>
+    <div class="typebox" id="trText"></div>
+    <div class="lesson-done hidden" id="trDone"></div>
+    <div class="kb" id="trKb"></div>
+    <p class="hint">Unlock the next key by getting every key to the target speed with 93%+ accuracy. <kbd>Esc</kbd> menu</p>
+  </section>
+
+  <!-- ARCADE -->
+  <section class="screen" id="arcade">
+    <div class="arcade-hud">
+      <div><small>Score</small><b id="arScore">0</b></div>
+      <div><small>Wave</small><b id="arWave">1</b></div>
+      <div class="mult"><small>Multiplier</small><b id="arMult">×1</b></div>
+      <div><small>Combo</small><b id="arCombo">0</b></div>
+      <div><small>Shields</small><b id="arLives">❤❤❤❤❤</b></div>
+    </div>
+    <div class="arena" id="arena">
+      <canvas id="arCanvas"></canvas>
+      <div class="banner hidden" id="arBanner"></div>
+      <div class="overlay hidden" id="arOverlay"></div>
+    </div>
+    <p class="hint">Type a word to lock on. <span class="pw freeze">freeze</span> slows time · <span class="pw bomb">bomb</span> clears the sky · <span class="pw heal">heal</span> restores a shield · <kbd>Backspace</kbd> drop target · <kbd>Esc</kbd> pause</p>
+  </section>
+
+  <!-- SPRINT -->
+  <section class="screen" id="sprint">
+    <div class="mode-head">
+      <h2>⏱️ Sprint</h2>
+      <div class="seg" id="spDur">
+        <button data-d="15">15s</button><button data-d="30" class="on">30s</button><button data-d="60">60s</button>
+      </div>
+      <label class="toggle"><input type="checkbox" id="spPunct"> Caps &amp; punctuation</label>
+    </div>
+    <div class="live">
+      <div class="timer"><small>Time</small><b id="spTime">30</b></div>
+      <div><small>WPM</small><b id="spWpm">0</b></div>
+      <div><small>Accuracy</small><b id="spAcc">100%</b></div>
+      <div class="combo"><small>Combo</small><b id="spCombo">0</b></div>
+    </div>
+    <div class="typebox tall" id="spText"></div>
+    <div class="kb" id="spKb"></div>
+    <p class="hint">The timer starts when you type. <kbd>Tab</kbd> restart · <kbd>Esc</kbd> menu</p>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="screen" id="results">
+    <div class="res-top">
+      <div class="big"><b id="rsWpm">0</b><small>WPM</small></div>
+      <div class="big"><b id="rsAcc">0%</b><small>Accuracy</small></div>
+      <div class="res-extra" id="rsExtra"></div>
+    </div>
+    <div class="pb hidden" id="rsPb">🏆 New personal best!</div>
+    <div class="xp-gain">
+      <div class="xp-line"><span id="rsXp">+0 XP</span><span id="rsLvl"></span></div>
+      <div class="xpbar big"><div id="rsXpFill"></div></div>
+    </div>
+    <div class="res-grid">
+      <div class="panel">
+        <h3>Speed over time</h3>
+        <canvas id="rsChart" height="180"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Problem keys</h3>
+        <div class="kb mini" id="rsKb"></div>
+        <p class="tip" id="rsTip"></p>
+      </div>
+    </div>
+    <div class="ach-new" id="rsAch"></div>
+    <div class="menu-row">
+      <button class="btn" id="rsAgain">↻ Play again <kbd>Enter</kbd></button>
+      <button class="btn ghost" data-go="menu">Menu <kbd>Esc</kbd></button>
+    </div>
+  </section>
+
+  <!-- PROGRESS -->
+  <section class="screen" id="progress">
+    <h2>📈 Your progress</h2>
+    <div class="totals" id="pgTotals"></div>
+    <div class="panel"><h3>WPM history</h3><canvas id="pgChart" height="200"></canvas></div>
+    <div class="panel"><h3>Key mastery</h3><p class="tip">Speed and accuracy for every letter. Green = mastered, amber = getting there, red = needs work, dark = locked.</p><div class="mastery" id="pgKeys"></div></div>
+    <div class="panel"><h3>Achievements</h3><div class="achs" id="pgAchs"></div></div>
+    <div class="menu-row"><button class="btn ghost" data-go="menu">← Back</button></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="screen" id="settings">
+    <h2>⚙️ Settings</h2>
+    <div class="panel settings">
+      <label class="toggle"><input type="checkbox" id="setSound"> Sound effects</label>
+      <label class="toggle"><input type="checkbox" id="setHints"> Show on-screen keyboard hints</label>
+      <label class="toggle"><input type="checkbox" id="setStop"> Stop on errors (must fix mistakes before moving on, recommended)</label>
+      <label>Training target speed
+        <select id="setTarget"><option value="20">20 WPM (gentle)</option><option value="30">30 WPM (default)</option><option value="40">40 WPM</option><option value="55">55 WPM (hard)</option></select>
+      </label>
+      <label>Daily goal
+        <select id="setGoal"><option value="5">5 minutes</option><option value="10">10 minutes</option><option value="15">15 minutes</option><option value="30">30 minutes</option></select>
+      </label>
+      <button class="btn danger" id="setReset">Reset all progress</button>
+    </div>
+    <div class="menu-row"><button class="btn ghost" data-go="menu">← Back</button></div>
+  </section>
+</main>
+
+<script src="js/fx.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/words.js"></script>
+<script src="js/main.js"></script>
+<script src="js/modes/training.js"></script>
+<script src="js/modes/sprint.js"></script>
+<script src="js/modes/arcade.js"></script>
+<script>KS.init();</script>
+</body>
+</html>
